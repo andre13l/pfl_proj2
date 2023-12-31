@@ -56,6 +56,7 @@ data Bexp
   | LeExp Aexp Aexp             -- Less than or equal
   | Not Bexp                 -- Logical NOT
   | AndExp Bexp Bexp            -- Logical AND
+  | OrExp Bexp Bexp            -- Logical OR
   deriving Show
 
 -- Statements
