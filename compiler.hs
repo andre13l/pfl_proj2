@@ -103,4 +103,111 @@ parse = fmap fst . parseProgram . lexer
 -- -------------------------------
 
 parse :: String -> Program
+parse input = buildData (lexer input)
 
+buildData :: [String] -> [Stm]
+buildData [] = []
+buildData tokens = case parseStm tokens of
+    (stm, restTokens) -> stm : buildData restTokens
+
+parseStm :: [String] -> (Stm, [String])
+parseStm ("if":rest) = parseIf rest
+parseStm ("while":rest) = parseWhile rest
+parseStm (var:":=":rest) = parseAssign var rest
+parseStm _ = (NoopStm, [])
+
+parseIf :: [String] -> (Stm, [String])
+parseIf tokens = case parseBexp tokens of
+    (condition, "then":rest1) ->
+        case parseStm rest1 of
+        (thenBranch, "else":rest2) ->
+            case parseStm rest2 of
+            (elseBranch, rest3) -> (If condition thenBranch elseBranch, rest3)
+        _ -> (NoopStm, [])
+    _ -> (NoopStm, [])
+
+parseWhile :: [String] -> (Stm, [String])
+parseWhile tokens = case parseBexp tokens of
+    (condition, "do":rest1) ->
+        case parseStm rest1 of
+        (body, rest2) -> (While condition body, rest2)
+    _ -> (NoopStm, [])
+
+parseAssign :: String -> [String] -> (Stm, [String])
+parseAssign var tokens = case parseAexp tokens of
+  (expression, rest) -> (Assign var expression, rest)
+
+parseAexp :: [String] -> (Aexp, [String])
+parseAexp tokens = parseAddExp tokens
+
+parseAddExp :: [String] -> (Aexp, [String])
+parseAddExp tokens =
+    let (left, rest1) = parseMulExp tokens
+    in case rest1 of
+        ("+":rest2) ->
+        let (right, rest3) = parseAddExp rest2
+        in (AddExp left right, rest3)
+        _ -> (left, rest1)
+
+parseMulExp :: [String] -> (Aexp, [String])
+parseMulExp tokens =
+    let (left, rest1) = parseAexpAtom tokens
+    in case rest1 of
+        ("*":rest2) ->
+        let (right, rest3) = parseMulExp rest2
+        in (MulExp left right, rest3)
+        _ -> (left, rest1)
+
+parseAexpAtom :: [String] -> (Aexp, [String])
+parseAexpAtom ("(":rest) =
+    let (aexp, rest') = parseAexp rest
+    in case rest' of
+        (")":rest'') -> (aexp, rest'')
+        _ -> (NoopAexp, rest)
+parseAexpAtom (var:rest) = (Var var, rest)
+parseAexpAtom (num:rest) = (Num (read num), rest)
+parseAexpAtom _ = (NoopAexp, [])
+
+
+parseBexp :: [String] -> (Bexp, [String])
+parseBexp tokens = parseOrExp tokens
+
+parseOrExp :: [String] -> (Bexp, [String])
+parseOrExp tokens =
+    let (left, rest1) = parseAndExp tokens
+    in case rest1 of
+        ("or":rest2) ->
+        let (right, rest3) = parseOrExp rest2
+        in (OrExp left right, rest3)
+        _ -> (left, rest1)
+
+parseAndExp :: [String] -> (Bexp, [String])
+parseAndExp tokens =
+    let (left, rest1) = parseBexpAtom tokens
+    in case rest1 of
+        ("and":rest2) ->
+        let (right, rest3) = parseAndExp rest2
+        in (AndExp left right, rest3)
+        _ -> (left, rest1)
+
+parseBexpAtom :: [String] -> (Bexp, [String])
+parseBexpAtom ("(":rest) =
+    let (bexp, rest') = parseBexp rest
+    in case rest' of
+        (")":rest'') -> (bexp, rest'')
+        _ -> (NoopBexp, rest)
+parseBexpAtom ("not":rest) =
+    let (bexp, rest') = parseBexpAtom rest
+    in (Not bexp, rest')
+parseBexpAtom ("true":rest) = (TrueB, rest)
+parseBexpAtom ("false":rest) = (FalseB, rest)
+parseBexpAtom tokens =
+    let (left, rest1) = parseAexp tokens
+    in case rest1 of
+        ("=":rest2) ->
+        let (right, rest3) = parseAexp rest2
+        in (Eq left right, rest3)
+        ("<=":rest2) ->
+        let (right, rest3) = parseAexp rest2
+        in (LeExp left right, rest3)
+        _ -> (NoopBexp, rest1)
