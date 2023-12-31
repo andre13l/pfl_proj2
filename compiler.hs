@@ -28,6 +28,9 @@ compile program = concatMap compileStm program
         compileStm NoopStm = []
 
 
+-- lexer takes a string as input and returns a list of tokens.
+-- the span is used to extract the longest prefix of characters that are not in the set " +-*;()=". This prefix is considered a token (word).
+-- The function then recursively calls itself with the remaining characters (rest) in the input string.
 lexer :: String -> [String]
 lexer [] = []
 lexer (':':'=':cs) = ":=" : lexer cs
@@ -39,44 +42,48 @@ lexer (c:cs)
         | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (c:cs)
                                     in word : lexer rest
 
-{-
-type Parser a = [String] -> Maybe (a, [String])
 
-parseAexp :: Parser Aexp
-parseAexp tokens = case parseTerm tokens of
-    Just (term, "-":tokens') -> case parseAexp tokens' of
-        Just (aexp, tokens'') -> Just (SubExp term aexp, tokens'')
-        _ -> Just (term, tokens')
-    Just (term, tokens') -> Just (term, tokens')
-    _ -> Nothing
+-- need to check if this is correct
+-- type Parser a = [String] -> Maybe (a, [String])
 
-parseTerm :: Parser Aexp
-parseTerm (token:tokens)
-    | all isDigit token = Just (Num (read token), tokens)
-    | otherwise = Just (Var token, tokens)
+-- parseAexp :: Parser Aexp
+-- parseAexp tokens = case parseTerm tokens of
+--     Just (term, "-":tokens') -> case parseAexp tokens' of
+--         Just (aexp, tokens'') -> Just (SubExp term aexp, tokens'')
+--         _ -> Just (term, tokens')
+--     Just (term, tokens') -> Just (term, tokens')
+--     _ -> Nothing
 
-parseBexp :: Parser Bexp
-parseBexp tokens = case parseAexp tokens of
-    Just (aexp1, "=":tokens') -> case parseAexp tokens' of
-        Just (aexp2, tokens'') -> Just (EquExp aexp1 aexp2, tokens'')
-        _ -> Nothing
-    _ -> Nothing
+-- parseTerm :: Parser Aexp
+-- parseTerm (token:tokens)
+--     | all isDigit token = Just (Num (read token), tokens)
+--     | otherwise = Just (Var token, tokens)
 
-parseStm :: Parser Stm
-parseStm (token:":=":tokens) = case parseAexp tokens of
-    Just (aexp, tokens') -> Just (Assign token aexp, tokens')
-    _ -> Nothing
-parseStm _ = Nothing
+-- parseBexp :: Parser Bexp
+-- parseBexp tokens = case parseAexp tokens of
+--     Just (aexp1, "=":tokens') -> case parseAexp tokens' of
+--         Just (aexp2, tokens'') -> Just (EquExp aexp1 aexp2, tokens'')
+--         _ -> Nothing
+--     _ -> Nothing
 
-parseProgram :: Parser Program
-parseProgram [] = Just ([], [])
-parseProgram tokens = case parseStm tokens of
-    Just (stm, ";":tokens') -> case parseProgram tokens' of
-        Just (program, tokens'') -> Just (stm:program, tokens'')
-        _ -> Just ([stm], tokens')
-    Just (stm, tokens') -> Just ([stm], tokens')
-    _ -> Nothing
+-- parseStm :: Parser Stm
+-- parseStm (token:":=":tokens) = case parseAexp tokens of
+--     Just (aexp, tokens') -> Just (Assign token aexp, tokens')
+--     _ -> Nothing
+-- parseStm _ = Nothing
 
-parse :: String -> Maybe Program
-parse = fmap fst . parseProgram . lexer
--}
+-- parseProgram :: Parser Program
+-- parseProgram [] = Just ([], [])
+-- parseProgram tokens = case parseStm tokens of
+--     Just (stm, ";":tokens') -> case parseProgram tokens' of
+--         Just (program, tokens'') -> Just (stm:program, tokens'')
+--         _ -> Just ([stm], tokens')
+--     Just (stm, tokens') -> Just ([stm], tokens')
+--     _ -> Nothing
+
+-- parse :: String -> Maybe Program
+-- parse = fmap fst . parseProgram . lexer
+
+-- -------------------------------
+
+parse :: String -> [Stm]
