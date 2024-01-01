@@ -32,15 +32,43 @@ compile program = concatMap compileStm program
 -- lexer takes a string as input and returns a list of tokens.
 -- the span is used to extract the longest prefix of characters that are not in the set " +-*;()=". This prefix is considered a token (word).
 -- The function then recursively calls itself with the remaining characters (rest) in the input string.
+
+-- Auxiliar functions to test chars
+isSpace :: Char -> Bool
+isSpace ch | ch == ' ' = True
+           | ch == '\n' = True
+           | ch == '\t' = True
+           | otherwise = False
+
+isDigit :: Char -> Bool
+isNumber ch | ch >= '0' && ch <= '9' = True
+            | otherwise = False
+
+charToInt :: Char -> Maybe Int
+charToInt c | isDigit c = Just (digitToInt c)
+            | otherwise = Nothing
+
 lexer :: String -> [String]
 lexer [] = []
-lexer (':':'=':cs) = ":=" : lexer cs
-lexer ('<':'=':cs) = "<=" : lexer cs
-lexer ('=':'=':cs) = "==" : lexer cs
-lexer ('>':'=':cs) = ">=" : lexer cs
-lexer (c:cs)
-        | c `elem` " +-*;()=" = if c == ' ' then lexer cs else [c] : lexer cs
-        | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (c:cs)
+lexer (':' : '=' : rest) = ":=" : lexer rest
+lexer ('<' : '=' : rest) = "<=" : lexer rest
+lexer ('=' : '=' : rest) = "==" : lexer rest
+lexer ('>' : '=' : rest) = ">=" : lexer rest
+lexer ('!':'=' : restStr) = "!=" : lexer restStr
+lexer (';': restStr) = ";" : lexer restStr
+lexer ('(': restStr) = "(" : lexer restStr
+lexer (')': restStr) = ")" : lexer restStr
+lexer ('{': restStr) = "{" : lexer restStr
+lexer ('}': restStr) = "}" : lexer restStr
+lexer ('+': restStr) = "+" : lexer restStr
+lexer ('-': restStr) = "-" : lexer restStr
+lexer ('*': restStr) = "*" : lexer restStr
+lexer ('/': restStr) = "/" : lexer restStr
+lexer ('&':'&': restStr) = "&&" : lexer restStr
+lexer ('|':'|': restStr) = "" : lexer restStr
+lexer (ch : restStr)
+        | ch `elem` " +-*;()=" = if isSpace ch then lexer restStr else [ch] : lexer restStr
+        | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (ch : restStr)
                                     in word : lexer rest
 
 
