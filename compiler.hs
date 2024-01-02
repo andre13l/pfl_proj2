@@ -65,9 +65,9 @@ parseAexp tokens = case nextValidToken (tokens,[]) "+" of
         (firstSegment, "-":secondSegment) -> SubExp (parseAexp firstSegment) (parseAexp secondSegment)
         _ -> case nextValidToken (tokens,[]) "*" of
             (firstSegment, "*":secondSegment) -> MulExp (parseAexp firstSegment) (parseAexp secondSegment)
-            _ -> case break isAllNumbers (reverse tokens) of
+            _ -> case break (all isDigit) (reverse tokens) of
                 (_, number:firstSegment) | check (reverse firstSegment) -> Num (read number)
-                _ -> case break isAllLetters (reverse tokens) of
+                _ -> case break (all isAlpha) (reverse tokens) of
                     (_, name:firstSegment) | check (reverse firstSegment) -> Var name
                     _->case break (== "(") (reverse tokens) of
                         (middleAfter, "(":_) -> case break (==")") (reverse middleAfter) of
@@ -121,14 +121,6 @@ parseWhile ("while":tokens) = case break (== "do") tokens of
         let (doStm,")":";":next) = breakOnParenthesis ([],after) 0
         in (While (parseBexp whileStm) (buildData doStm):buildData next)
     (whileStm, "do":doStm) -> [While (parseBexp whileStm) [parseAssign doStm]]
-
-
-
-isAllLetters :: String -> Bool
-isAllLetters = all isAlpha
-
-isAllNumbers :: String -> Bool
-isAllNumbers = all isDigit
 
 breakOnElse :: ([String], [String]) -> Int -> ([String], [String])
 breakOnElse (_, []) _ = ([], [])
