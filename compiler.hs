@@ -67,6 +67,13 @@ lexer (ch : restStr)
         | ch `elem` " +-*;()=" = if ch == ' ' then lexer restStr else [ch] : lexer restStr
         | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (ch : restStr)
                                     in word : lexer rest
+-- lexer (ch : restStr)
+--         | ch `elem` " +-*;()=" = if ch == ' ' then lexer restStr else [ch] : lexer restSTr
+--         | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (ch : restStr) 
+--             in case rest of
+--                 (':':'=':rest) -> word : "=" : lexer rest
+--                 _ -> word : lexer rest
+--
 -- lexer str@(ch : restStr)
 --   | isAlpha ch = let (varStr, restStr') = span isAlphaNumOrUnderscore str
 --                   in varStr : lexer restStr'
@@ -77,7 +84,7 @@ lexer (ch : restStr)
 
 -- -------------------------------------------------------------
 
--- parse :: String -> Program
+-- parse :: String -> Super
 -- parse input = buildData (lexer input)
 
 -- buildData :: [String] -> [Stm]
@@ -181,18 +188,7 @@ lexer (ch : restStr)
 
 
 -- -----------------------------------------------------------------------------------
-lexer :: String -> [String]
-lexer [] = []
-lexer (':':'=':cs) = ":=" : lexer cs
-lexer ('<':'=':cs) = "<=" : lexer cs
-lexer ('=':'=':cs) = "==" : lexer cs
-lexer ('>':'=':cs) = ">=" : lexer cs
-lexer (c:cs)
-        | c `elem` " +-*;()=" = if c == ' ' then lexer cs else [c] : lexer cs
-        | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (c:cs) 
-            in case rest of
-                (':':'=':rest) -> word : "=" : lexer rest
-                _ -> word : lexer rest
+-- 
 
 parse :: String -> Super
 parse input = buildData (lexer input)
