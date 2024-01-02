@@ -43,29 +43,28 @@ state2Str state = intercalate "," [var ++ "=" ++ stackValue val | (var, val) <- 
 data Aexp
   = Num Integer              -- Numeric constant
   | Var String               -- Variable
-  | AddExp Aexp Aexp            -- Addition
-  | SubExp Aexp Aexp            -- Subtraction
-  | MulExp Aexp Aexp            -- Multiplication
+  | AddExp Aexp Aexp         -- Addition
+  | SubExp Aexp Aexp         -- Subtraction
+  | MulExp Aexp Aexp         -- Multiplication
   deriving Show
 
--- Boolean Expressions
 data Bexp
   = TrueB                    -- True constant
   | FalseB                   -- False constant
-  | Eq Aexp Aexp             -- Equality
-  | LeExp Aexp Aexp             -- Less than or equal
+  | Eq Bexp Bexp             -- Equality
+  | LeExp Aexp Aexp          -- Less than or equal
   | Not Bexp                 -- Logical NOT
-  | AndExp Bexp Bexp            -- Logical AND
-  | OrExp Bexp Bexp            -- Logical OR
+  | AndExp Bexp Bexp         -- Logical AND
+  | DoubleEq Aexp Aexp       -- Double equality
   deriving Show
 
--- Statements
 data Stm
   = Assign String Aexp       -- Assignment: variable := arithmetic expression
-  | If Bexp Stm Stm          -- Conditional: if boolean expression then statement else statement
-  | While Bexp Stm           -- Loop: while boolean expression do statement
+  | If Bexp Super Super      -- Conditional: if boolean expression then statement else statement
+  | While Bexp Super           -- Loop: while boolean expression do statement
   | NoopStm                  -- Noop
   deriving Show
 
--- Program
-type Program = [Stm]
+type Super = [Stm]
+
+type Parser a = [String] -> (a)
