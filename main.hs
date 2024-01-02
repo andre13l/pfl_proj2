@@ -2,9 +2,9 @@ module Main where
 
 import Datastructs
 import Interpreter
-import Tests( runTests, runTests2)
+import Tests(runTests)
 
 main :: IO ()
 main = do
   runTests
-  runTests2
+  

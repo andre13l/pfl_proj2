@@ -2,6 +2,7 @@ module Compiler where
 
 import Datastructs
 import Data.Char (isDigit)
+import Data.List
 
 compA :: Aexp -> Code
 compA (Num i) = [Push i]
@@ -34,202 +35,147 @@ compile program = concatMap compileStm program
 -- The function then recursively calls itself with the remaining characters (rest) in the input string.
 
 -- Auxiliar functions to test chars
-isSpace :: Char -> Bool
-isSpace ch | ch == ' ' = True
+isSpaceAux :: Char -> Bool
+isSpaceAux ch | ch == ' ' = True
            | ch == '\n' = True
            | ch == '\t' = True
            | otherwise = False
 
-isDigit :: Char -> Bool
-isNumber ch | ch >= '0' && ch <= '9' = True
-            | otherwise = False
-
-charToInt :: Char -> Maybe Int
-charToInt c | isDigit c = Just (digitToInt c)
-            | otherwise = Nothing
-
 lexer :: String -> [String]
 lexer [] = []
-lexer (':' : '=' : rest) = ":=" : lexer rest
-lexer ('<' : '=' : rest) = "<=" : lexer rest
-lexer ('=' : '=' : rest) = "==" : lexer rest
-lexer ('>' : '=' : rest) = ">=" : lexer rest
-lexer ('!':'=' : restStr) = "!=" : lexer restStr
-lexer (';': restStr) = ";" : lexer restStr
-lexer ('(': restStr) = "(" : lexer restStr
-lexer (')': restStr) = ")" : lexer restStr
-lexer ('{': restStr) = "{" : lexer restStr
-lexer ('}': restStr) = "}" : lexer restStr
-lexer ('+': restStr) = "+" : lexer restStr
-lexer ('-': restStr) = "-" : lexer restStr
-lexer ('*': restStr) = "*" : lexer restStr
-lexer ('/': restStr) = "/" : lexer restStr
+lexer (':' : '=' : restStr) = ":=" : lexer restStr
+lexer ('<' : '=' : restStr) = "<=" : lexer restStr
+lexer ('=' : '=' : restStr) = "==" : lexer restStr
+lexer ('>' : '=' : restStr) = ">=" : lexer restStr
+lexer ('=' : restStr) = "=" : lexer restStr
+lexer ('(' : restStr) = "(" : lexer restStr
+lexer (')' : restStr) = ")" : lexer restStr
+lexer ('+' : restStr) = "+" : lexer restStr
+lexer ('-' : restStr) = "-" : lexer restStr
+lexer ('*' : restStr) = "*" : lexer restStr
+lexer ('/' : restStr) = "/" : lexer restStr
+lexer ('<' : restStr) = "<" : lexer restStr
+lexer ('>' : restStr) = ">" : lexer restStr
+lexer ('&' : restStr) = "&" : lexer restStr
+lexer ('|' : restStr) = "|" : lexer restStr
+lexer ('!' : restStr) = "!" : lexer restStr
 lexer ('&':'&': restStr) = "&&" : lexer restStr
-lexer ('|':'|': restStr) = "" : lexer restStr
+lexer ('|':'|': restStr) = "||" : lexer restStr
 lexer (ch : restStr)
-        | ch `elem` " +-*;()=" = if isSpace ch then lexer restStr else [ch] : lexer restStr
+        | ch `elem` " +-*;()=" = if ch == ' ' then lexer restStr else [ch] : lexer restStr
         | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (ch : restStr)
                                     in word : lexer rest
-
-
--- este foi o gpt que fez, depois temos de ver qual deixamos ficar
-{-
-lexer :: String -> [String]
-lexer "" = []
-lexer s@(c:cs)
-  | isSpace c = lexer cs          -- Skip whitespace
-  | isAlpha c && isLower c = takeWhile isAlphaNum s : lexer (dropWhile isAlphaNum s)
-  | isDigit c = takeWhile isDigit s : lexer (dropWhile isDigit s)
-  | otherwise = [c] : lexer cs
--}
+-- lexer str@(ch : restStr)
+--   | isAlpha ch = let (varStr, restStr') = span isAlphaNumOrUnderscore str
+--                   in varStr : lexer restStr'
+--   | isDigit ch = let (digitStr, restStr') = span isDigit str
+--                   in digitStr : lexer restStr'
+--   | otherwise = [ch] : lexer restStr
 
 
 -- -------------------------------------------------------------
--- need to check if this is correct
-{-
-type Parser a = [String] -> Maybe (a, [String])
 
-parseAexp :: Parser Aexp
-parseAexp tokens = case parseTerm tokens of
-    Just (term, "-":tokens') -> case parseAexp tokens' of
-        Just (aexp, tokens'') -> Just (SubExp term aexp, tokens'')
-        _ -> Just (term, tokens')
-    Just (term, tokens') -> Just (term, tokens')
-    _ -> Nothing
+-- parse :: String -> Program
+-- parse input = buildData (lexer input)
 
-parseTerm :: Parser Aexp
-parseTerm (token:tokens)
-    | all isDigit token = Just (Num (read token), tokens)
-    | otherwise = Just (Var token, tokens)
+-- buildData :: [String] -> [Stm]
+-- buildData [] = []
+-- buildData tokens = case parseStm tokens of
+--     (stm, restTokens) -> stm : buildData restTokens
 
-parseBexp :: Parser Bexp
-parseBexp tokens = case parseAexp tokens of
-    Just (aexp1, "=":tokens') -> case parseAexp tokens' of
-        Just (aexp2, tokens'') -> Just (EquExp aexp1 aexp2, tokens'')
-        _ -> Nothing
-    _ -> Nothing
+-- parseStm :: [String] -> (Stm, [String])
+-- parseStm ("if" : rest) = parseIf rest
+-- parseStm ("while" : rest) = parseWhile rest
+-- parseStm (var : ":=" : rest) = parseAssign var rest
+-- parseStm _ = (NoopStm, [])
 
-parseStm :: Parser Stm
-parseStm (token:":=":tokens) = case parseAexp tokens of
-    Just (aexp, tokens') -> Just (Assign token aexp, tokens')
-    _ -> Nothing
-parseStm _ = Nothing
+-- parseIf :: [String] -> (Stm, [String])
+-- parseIf tokens = case parseBexp tokens of
+--     (condition, "then" : rest1) ->
+--         case parseStm rest1 of
+--         (thenBranch, "else" : rest2) ->
+--             case parseStm rest2 of
+--             (elseBranch, rest3) -> (If condition thenBranch elseBranch, rest3)
+--         _ -> (NoopStm, [])
+--     _ -> (NoopStm, [])
 
-parseProgram :: Parser Program
-parseProgram [] = Just ([], [])
-parseProgram tokens = case parseStm tokens of
-    Just (stm, ";":tokens') -> case parseProgram tokens' of
-        Just (program, tokens'') -> Just (stm:program, tokens'')
-        _ -> Just ([stm], tokens')
-    Just (stm, tokens') -> Just ([stm], tokens')
-    _ -> Nothing
+-- parseWhile :: [String] -> (Stm, [String])
+-- parseWhile tokens = case parseBexp tokens of
+--     (condition, "do" : rest1) ->
+--         case parseStm rest1 of
+--         (body, rest2) -> (While condition body, rest2)
+--     _ -> (NoopStm, [])
 
-parse :: String -> Maybe Program
-parse = fmap fst . parseProgram . lexer
--}
+-- parseAssign :: String -> [String] -> (Stm, [String])
+-- parseAssign var tokens = case parseAexp tokens of
+--   (expression, rest) -> (Assign var expression, rest)
 
--- -------------------------------
+-- parseAexp :: [String] -> (Aexp, [String])
+-- parseAexp tokens = parseAddExp tokens
 
-parse :: String -> Program
-parse input = buildData (lexer input)
+-- parseAddExp :: [String] -> (Aexp, [String])
+-- parseAddExp tokens =
+--     let (left, rest1) = parseMulExp tokens
+--     in case rest1 of
+--         ("+" : rest2) ->
+--             let (right, rest3) = parseAddExp rest2
+--             in (AddExp left right, rest3)
+--         _ -> (left, rest1)
 
-buildData :: [String] -> [Stm]
-buildData [] = []
-buildData tokens = case parseStm tokens of
-    (stm, restTokens) -> stm : buildData restTokens
+-- parseMulExp :: [String] -> (Aexp, [String])
+-- parseMulExp tokens =
+--     let (left, rest1) = parseAexpAtom tokens
+--     in case rest1 of
+--         ("*" : rest2) ->
+--             let (right, rest3) = parseMulExp rest2
+--             in (MulExp left right, rest3)
+--         _ -> (left, rest1)
 
-parseStm :: [String] -> (Stm, [String])
-parseStm ("if" : rest) = parseIf rest
-parseStm ("while" : rest) = parseWhile rest
-parseStm (var : ":=" : rest) = parseAssign var rest
-parseStm _ = (NoopStm, [])
+-- parseAexpAtom :: [String] -> (Aexp, [String])
+-- parseAexpAtom ("(" : rest) =
+--     let (aexp, rest') = parseAexp rest
+--     in case rest' of
+--         (")" : rest'') -> (aexp, rest'')
+--         _ -> (Var "NoopAexp", rest)  -- Use Var constructor to match Aexp data structure
+-- parseAexpAtom (var : rest) = (Var var, rest)  -- Use Var constructor to match Aexp data structure
+-- parseAexpAtom (num : rest) = (Num (read num), rest)
+-- parseAexpAtom _ = (Var "NoopAexp", [])  -- Use Var constructor to match Aexp data structure
 
-parseIf :: [String] -> (Stm, [String])
-parseIf tokens = case parseBexp tokens of
-    (condition, "then" : rest1) ->
-        case parseStm rest1 of
-        (thenBranch, "else" : rest2) ->
-            case parseStm rest2 of
-            (elseBranch, rest3) -> (If condition thenBranch elseBranch, rest3)
-        _ -> (NoopStm, [])
-    _ -> (NoopStm, [])
-
-parseWhile :: [String] -> (Stm, [String])
-parseWhile tokens = case parseBexp tokens of
-    (condition, "do" : rest1) ->
-        case parseStm rest1 of
-        (body, rest2) -> (While condition body, rest2)
-    _ -> (NoopStm, [])
-
-parseAssign :: String -> [String] -> (Stm, [String])
-parseAssign var tokens = case parseAexp tokens of
-  (expression, rest) -> (Assign var expression, rest)
-
-parseAexp :: [String] -> (Aexp, [String])
-parseAexp tokens = parseAddExp tokens
-
-parseAddExp :: [String] -> (Aexp, [String])
-parseAddExp tokens =
-    let (left, rest1) = parseMulExp tokens
-    in case rest1 of
-        ("+" : rest2) ->
-            let (right, rest3) = parseAddExp rest2
-            in (AddExp left right, rest3)
-        _ -> (left, rest1)
-
-parseMulExp :: [String] -> (Aexp, [String])
-parseMulExp tokens =
-    let (left, rest1) = parseAexpAtom tokens
-    in case rest1 of
-        ("*" : rest2) ->
-            let (right, rest3) = parseMulExp rest2
-            in (MulExp left right, rest3)
-        _ -> (left, rest1)
-
-parseAexpAtom :: [String] -> (Aexp, [String])
-parseAexpAtom ("(" : rest) =
-    let (aexp, rest') = parseAexp rest
-    in case rest' of
-        (")" : rest'') -> (aexp, rest'')
-        _ -> (Var "NoopAexp", rest)  -- Use Var constructor to match Aexp data structure
-parseAexpAtom (var : rest) = (Var var, rest)  -- Use Var constructor to match Aexp data structure
-parseAexpAtom (num : rest) = (Num (read num), rest)
-parseAexpAtom _ = (Var "NoopAexp", [])  -- Use Var constructor to match Aexp data structure
-
-parseOrExp :: [String] -> (Bexp, [String])
-parseOrExp tokens =
-    let (left, rest1) = parseOrExp tokens
-    in case rest1 of
-        ("or" : rest2) ->
-            let (right, rest3) = parseOrExp rest2
-            in (OrExp left right, rest3)  -- Now using the OrExp constructor directly
-        _ -> (left, rest1)
+-- parseOrExp :: [String] -> (Bexp, [String])
+-- parseOrExp tokens =
+--     let (left, rest1) = parseOrExp tokens
+--     in case rest1 of
+--         ("or" : rest2) ->
+--             let (right, rest3) = parseOrExp rest2
+--             in (OrExp left right, rest3)  -- Now using the OrExp constructor directly
+--         _ -> (left, rest1)
 
 
-parseBexp :: [String] -> (Bexp, [String])
-parseBexp tokens = parseOrExp tokens
+-- parseBexp :: [String] -> (Bexp, [String])
+-- parseBexp tokens = parseOrExp tokens
 
-parseBexpAtom :: [String] -> (Bexp, [String])
-parseBexpAtom ("(" : rest) =
-    let (bexp, rest') = parseBexp rest
-    in case rest' of
-        (")" : rest'') -> (bexp, rest'')
-        _ -> (bexp, rest')  -- If no closing parenthesis is found, return the parsed Bexp
-parseBexpAtom ("not" : rest) =
-    let (bexp, rest') = parseBexpAtom rest
-    in (Not bexp, rest')  -- Use Not constructor to match Bexp data structure
-parseBexpAtom ("true" : rest) = (TrueB, rest)
-parseBexpAtom ("false" : rest) = (FalseB, rest)
-parseBexpAtom tokens =
-    let (left, rest1) = parseAexp tokens
-    in case rest1 of
-        ("=" : rest2) ->
-            let (right, rest3) = parseAexp rest2
-            in (Eq left right, rest3)
-        ("<=" : rest2) ->
-            let (right, rest3) = parseAexp rest2
-            in (LeExp left right, rest3)
-        _ -> (TrueB, rest1)  -- Use NoopBexp constructor to match Bexp data structure
+-- parseBexpAtom :: [String] -> (Bexp, [String])
+-- parseBexpAtom ("(" : rest) =
+--     let (bexp, rest') = parseBexp rest
+--     in case rest' of
+--         (")" : rest'') -> (bexp, rest'')
+--         _ -> (bexp, rest')  -- If no closing parenthesis is found, return the parsed Bexp
+-- parseBexpAtom ("not" : rest) =
+--     let (bexp, rest') = parseBexpAtom rest
+--     in (Not bexp, rest')  -- Use Not constructor to match Bexp data structure
+-- parseBexpAtom ("true" : rest) = (TrueB, rest)
+-- parseBexpAtom ("false" : rest) = (FalseB, rest)
+-- parseBexpAtom tokens =
+--     let (left, rest1) = parseAexp tokens
+--     in case rest1 of
+--         ("=" : rest2) ->
+--             let (right, rest3) = parseAexp rest2
+--             in (Eq left right, rest3)
+--         ("<=" : rest2) ->
+--             let (right, rest3) = parseAexp rest2
+--             in (LeExp left right, rest3)
+--         _ -> (TrueB, rest1)  -- Use NoopBexp constructor to match Bexp data structure
 
 
-        
+
+
