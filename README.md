@@ -180,16 +180,30 @@ To parse the source code, firstly we developed the `lexer` function, to separate
 ```haskell
 lexer :: String -> [String]
 lexer [] = []
-lexer (':':'=':cs) = ":=" : lexer cs
-lexer ('<':'=':cs) = "<=" : lexer cs
-lexer ('=':'=':cs) = "==" : lexer cs
-lexer ('>':'=':cs) = ">=" : lexer cs
-lexer (c:cs)
-    | c `elem` " +-*;()=" = if c == ' ' then lexer cs else [c] : lexer cs
-    | otherwise = let (word, rest) = span (`notElem` " +-*;():=<") (c:cs)
-                  in case rest of
-                       (':':'=':rs) -> word : ":=" : lexer rs
-                       _ -> word : lexer rest
+lexer (':' : '=' : restStr) = ":=" : lexer restStr
+lexer ('<' : '=' : restStr) = "<=" : lexer restStr
+lexer ('=' : '=' : restStr) = "==" : lexer restStr
+lexer ('>' : '=' : restStr) = ">=" : lexer restStr
+lexer ('=' : restStr) = "=" : lexer restStr
+lexer ('(' : restStr) = "(" : lexer restStr
+lexer (')' : restStr) = ")" : lexer restStr
+lexer ('+' : restStr) = "+" : lexer restStr
+lexer ('-' : restStr) = "-" : lexer restStr
+lexer ('*' : restStr) = "*" : lexer restStr
+lexer ('/' : restStr) = "/" : lexer restStr
+lexer ('<' : restStr) = "<" : lexer restStr
+lexer ('>' : restStr) = ">" : lexer restStr
+lexer ('&' : restStr) = "&" : lexer restStr
+lexer ('|' : restStr) = "|" : lexer restStr
+lexer ('!' : restStr) = "!" : lexer restStr
+lexer ('&':'&': restStr) = "&&" : lexer restStr
+lexer ('|':'|': restStr) = "||" : lexer restStr
+lexer (ch : restStr)
+        | ch `elem` " +-*;()=" = if ch == ' ' then lexer restStr else [ch] : lexer restSTr
+        | otherwise = let (word, rest) = span (`notElem` " +-*;()=") (ch : restStr) 
+            in case rest of
+                (':':'=':rest) -> word : "=" : lexer rest
+                _ -> word : lexer rest
 ```
 
 For cases where operators are composed of more than 1 character, such as the assignment operator "**:=**", we used pattern-matching to manually concatenate the characters into a single one.
